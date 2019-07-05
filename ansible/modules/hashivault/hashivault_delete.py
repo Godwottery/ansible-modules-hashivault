@@ -70,6 +70,10 @@ options:
     secret:
         description:
             - secret to delete.
+    secret_version:
+        description:
+            - version of the secret to be deleted. Only applicable to v2 kv engines. -1 for latest
+        default: -1
 '''
 EXAMPLES = '''
 ---
@@ -85,6 +89,7 @@ def main():
     argspec['version'] = dict(required=False, type='int', default=1)
     argspec['mount_point'] = dict(required=False, type='str', default='secret')
     argspec['secret'] = dict(required=True, type='str')
+    argspec['secret_version'] = dict(required=False, type='int', default=-1)
     module = hashivault_init(argspec)
     result = hashivault_delete(module.params)
     if result.get('failed'):
@@ -100,6 +105,7 @@ def hashivault_delete(params):
     version = params.get('version')
     mount_point = params.get('mount_point')
     secret = params.get('secret')
+    secret_version = params.get('secret_version')
     if secret.startswith('/'):
         secret = secret.lstrip('/')
         mount_point = ''
@@ -113,7 +119,10 @@ def hashivault_delete(params):
         returned_data = None
         try:
             if version == 2:
-                returned_data = client.secrets.kv.v2.delete_latest_version_of_secret(secret, mount_point=mount_point)
+                if secret_version == -1: 
+                    returned_data = client.secrets.kv.v2.delete_latest_version_of_secret(secret, mount_point=mount_point)
+                else: 
+                    returned_data = client.secrets.kv.v2.delete_secret_versions(secret, secret_version, mount_point=mount-point)
             else:
                 returned_data = client.delete(secret_path)
         except InvalidPath:
